@@ -1,7 +1,7 @@
-# **Finding Lane Lines on the Road** 
+# **Finding Lane Lines on the Road**
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+<img src="test_images_output/solidWhiteCurve.jpg" width="480" alt="Combined Image" />
 
 Overview
 ---
@@ -10,44 +10,95 @@ When we drive, we use our eyes to decide where to go.  The lines on the road tha
 
 In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
 
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
-
-
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
-
-1. Describe the pipeline
-
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+The goals / steps of this project are the following:
+* Make a pipeline that finds lane lines on the road
+* Reflect on your work in a written report
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
+---
 
-**Step 2:** Open the code in a Jupyter Notebook
+## Reflection
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
+### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
+#### Pipeline details
+1) Read image and convert to grayscale
+```
+image = mpimg.imread('test_images/solidWhiteCurve.jpg')
+gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+```
+<img src="test_images_output/pipeline/gray.jpg" width="480" alt="Grayscale Image" />
 
-`> jupyter notebook`
+2) Apply Gaussian blur with kernel size 5*5 to reduce noise
+```
+kernel_size = 5
+blur_gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
+```
+<img src="test_images_output/pipeline/blur_gray.jpg" width="480" alt="Blurred Image" />
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+3) Run Canny Edge Detection on blurred gray image
+```
+low_threshold = 50
+high_threshold = 150
+canny_edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
+```
+<img src="test_images_output/pipeline/canny_edges.jpg" width="480" alt="Canny Edges Image" />
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+4) Define the region of interest with four sided polygon then create a masked image
 
+Global variables are defined to allow customization for different scenarios.
+```
+roi_top_left_x_ratio     = 0.40  # Top left_X of Region of Interest: width * roi_top_left_x_ratio
+roi_top_right_x_ratio    = 0.60  # Top right_X of Region of Interest: width * roi_top_right_x_ratio
+roi_top_y_ratio          = 0.65  # Top Y of Region of interest: height * roi_top_y_ratio
+roi_bottom_left_x_ratio  = 0.10  # Bottom left_X of Region of Interest: width * roi_bottom_left_x_ratio
+```
+
+The vertices of region of interest are calculated with image size and variables defined above.
+```
+imshape = image.shape
+top_y = int(imshape[0] * roi_top_y_ratio)
+top_left_x = int(image.shape[1] * roi_top_left_x_ratio)
+top_right_x = int(image.shape[1] * roi_top_right_x_ratio)
+bottom_left_x = int(image.shape[1] * roi_bottom_left_x_ratio)
+vertices = np.array([[(bottom_left_x, imshape[0]), (top_left_x, top_y),
+                      (top_right_x, top_y), (imshape[1] - 50, imshape[0])]], dtype=np.int32)
+masked_edges = region_of_interest(canny_edges, vertices)
+```
+<img src="test_images_output/pipeline/masked_edges.jpg" width="480" alt="Masked Edges Image" />
+
+5) Run HoughLinesP to find line segments on masked, edge detected image using the probabilistic Hough transform
+```
+rho = 2            # distance resolution in pixels of the Hough grid
+theta = np.pi/180  # angular resolution in radians of the Hough grid
+threshold = 20     # minimum number of votes (intersections in Hough grid cell)
+min_line_len = 30  # minimum number of pixels making up a line
+max_line_gap = 20  # maximum gap in pixels between connectable line segments
+lines_image = hough_lines(masked_edges, rho, theta, threshold, min_line_len, max_line_gap)
+```
+<img src="test_images_output/pipeline/lines_image.jpg" width="480" alt="Lines Image" />
+
+6) Draw lines on initial image
+```
+α = 0.8, β = 1.0, λ = 0.0
+result = cv2.addWeighted(image, α, lines_image, β, λ)
+```
+<img src="test_images_output/solidWhiteCurve.jpg" width="480" alt="Solid White Curve Image" />
+
+#### Changes on draw_lines()
+The followings have been done on draw_lines() function to draw a single line on the left and right lanes:
+* Separate left and right line segments using slopes, filter out horizontal lines (slope < slope_threshold)
+* Filter out unexpected line segments whose slopes and locations don't match (e.g., slope < 0 but located in the right half of image)
+* Run polyfit on the remaining line segments to get slope and bias of lane lines
+* To avoid lines being jumpy when test on videos, combine the knowledge from previous frame with the result fitted above to calculate the final slope and bias, then extend the left and right lane boundaries accordingly
+
+### 2. Identify potential shortcomings with your current pipeline
+
+* Lane detection doesn't work well with optional challenge since the noise caused by tree shadows and pavement color changes are not well handled
+* The parameters used in Canny edge detection and Hough Transform are manually tuned and hardcoded. It works with the  sample images and videos, while it will easily fail at different weather and light conditions (rain, snow or at night)
+* The pipeline uses region of interest (ROI) to reduce noises, while the tuned ROI parameters may not work when camera installation changes
+
+### 3. Suggest possible improvements to your pipeline
+* Design an algorithm to dynamically update parameters of ROI, edge detection and Hough Transform
+* Apply color selection to reduce the noises caused by different weather and light conditions
