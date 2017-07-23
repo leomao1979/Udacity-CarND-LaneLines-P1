@@ -49,7 +49,13 @@ White selected image:
 
 <img src="test_images_output/pipeline/white_selected.jpg" width="480" alt="White Selected Image" />
 
-Merged (Yellow and White):
+```
+# Select Yellow and White
+yellow_white_mask = cv2.bitwise_or(yellow_mask, white_mask)
+color_selected = cv2.bitwise_and(img, img, mask=yellow_white_mask)
+```
+
+Merged (Yellow + White):
 
 <img src="test_images_output/pipeline/color_selected.jpg" width="480" alt="Color Selected Image" />
 
@@ -86,9 +92,9 @@ imshape = image.shape
 top_y = int(imshape[0] * roi_top_y_ratio)
 top_left_x = int(image.shape[1] * roi_top_left_x_ratio)
 top_right_x = int(image.shape[1] * roi_top_right_x_ratio)
-bottom_left_x = int(image.shape[1] * roi_bottom_left_x_ratio)
-vertices = np.array([[(bottom_left_x, imshape[0]), (top_left_x, top_y),
-                      (top_right_x, top_y), (imshape[1] - 50, imshape[0])]], dtype=np.int32)
+vertices = np.array([[(0, imshape[0]), (top_left_x, top_y),
+                      (top_right_x, top_y), (imshape[1], imshape[0])]], dtype=np.int32)
+
 masked_edges = region_of_interest(canny_edges, vertices)
 ```
 
@@ -106,7 +112,7 @@ lines_image = hough_lines(masked_edges, rho, theta, threshold, min_line_len, max
 
 <img src="test_images_output/pipeline/lines_image.jpg" width="480" alt="Lines Image" />
 
-##### 6) Draw lines on initial image
+##### 6) Draw lines on original image
 ```
 α = 0.8, β = 1.0, λ = 0.0
 result = cv2.addWeighted(image, α, lines_image, β, λ)
