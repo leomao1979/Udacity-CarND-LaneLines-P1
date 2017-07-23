@@ -1,7 +1,7 @@
 # **Finding Lane Lines on the Road**
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="test_images_output/solidWhiteCurve.jpg" width="480" alt="Combined Image" />
+<img src="test_images_output/solidYellowCurve.jpg" width="480" alt="Combined Image" />
 
 Overview
 ---
@@ -23,15 +23,37 @@ The goals / steps of this project are the following:
 ### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
 #### Pipeline details
-1) Read image and convert to grayscale
+1) Read image and select Yellow and White colors
 ```
-image = mpimg.imread('test_images/solidWhiteCurve.jpg')
-gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-```
-<img src="test_images_output/pipeline/gray.jpg" width="480" alt="Grayscale Image" />
+img = mpimg.imread('test_images/solidWhiteCurve.jpg')
 
-2) Apply Gaussian blur with kernel size 5*5 to reduce noise
+# Select Yellow Line in HSV
+hsv_img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+yellow_hsv_low = np.array([0, 80, 200], np.uint8)
+yellow_hsv_high = np.array([40, 255, 255], np.uint8)
+yellow_mask = cv2.inRange(hsv_img, yellow_hsv_low, yellow_hsv_high)
 ```
+Yellow selected image:
+<img src="test_images_output/pipeline/yellow_selected.jpg" width="480" alt="Yellow Selected Image" />
+
+```
+# Select White Line in RGB
+white_rgb_low = np.array([200, 200, 200], np.uint8)
+white_rgb_high = np.array([255, 255, 255], np.uint8)
+white_mask = cv2.inRange(img, white_rgb_low, white_rgb_high)
+```
+
+White selected image:
+
+<img src="test_images_output/pipeline/white_selected.jpg" width="480" alt="White Selected Image" />
+
+Merged (Yellow and White):
+
+<img src="test_images_output/pipeline/color_selected.jpg" width="480" alt="Color Selected Image" />
+
+2) Convert to grayscale and apply Gaussian blur to reduce noise
+```
+gray = cv2.cvtColor(color_selected, cv2.COLOR_RGB2GRAY)
 kernel_size = 5
 blur_gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
 ```
@@ -45,14 +67,13 @@ canny_edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
 ```
 <img src="test_images_output/pipeline/canny_edges.jpg" width="480" alt="Canny Edges Image" />
 
-4) Define the region of interest with four sided polygon then create a masked image
+4) Define Region of Interest (ROI) with four sided polygon then crop image
 
-Global variables are defined to allow customization for different scenarios.
+ROI related variables:
 ```
-roi_top_left_x_ratio     = 0.40  # Top left_X of Region of Interest: width * roi_top_left_x_ratio
-roi_top_right_x_ratio    = 0.60  # Top right_X of Region of Interest: width * roi_top_right_x_ratio
-roi_top_y_ratio          = 0.65  # Top Y of Region of interest: height * roi_top_y_ratio
-roi_bottom_left_x_ratio  = 0.10  # Bottom left_X of Region of Interest: width * roi_bottom_left_x_ratio
+roi_top_left_x_ratio     = 0.42  # Top left_X of Region of Interest: width * roi_top_left_x_ratio
+roi_top_right_x_ratio    = 0.58  # Top right_X of Region of Interest: width * roi_top_right_x_ratio
+roi_top_y_ratio          = 0.62  # Top Y of Region of interest: height * roi_top_y_ratio
 ```
 
 The vertices of region of interest are calculated with image size and variables defined above.
@@ -72,9 +93,9 @@ masked_edges = region_of_interest(canny_edges, vertices)
 ```
 rho = 2            # distance resolution in pixels of the Hough grid
 theta = np.pi/180  # angular resolution in radians of the Hough grid
-threshold = 20     # minimum number of votes (intersections in Hough grid cell)
-min_line_len = 30  # minimum number of pixels making up a line
-max_line_gap = 20  # maximum gap in pixels between connectable line segments
+threshold = 30     # minimum number of votes (intersections in Hough grid cell)
+min_line_len = 5  # minimum number of pixels making up a line
+max_line_gap = 10  # maximum gap in pixels between connectable line segments
 lines_image = hough_lines(masked_edges, rho, theta, threshold, min_line_len, max_line_gap)
 ```
 <img src="test_images_output/pipeline/lines_image.jpg" width="480" alt="Lines Image" />
@@ -84,21 +105,19 @@ lines_image = hough_lines(masked_edges, rho, theta, threshold, min_line_len, max
 α = 0.8, β = 1.0, λ = 0.0
 result = cv2.addWeighted(image, α, lines_image, β, λ)
 ```
-<img src="test_images_output/solidWhiteCurve.jpg" width="480" alt="Solid White Curve Image" />
+<img src="test_images_output/solidYellowCurve.jpg" width="480" alt="Solid Yellow Curve Image" />
 
 #### Changes on draw_lines()
 The followings have been done on draw_lines() function to draw a single line on the left and right lanes:
 * Separate left and right line segments using slopes, filter out horizontal lines (slope < slope_threshold)
 * Filter out unexpected line segments whose slopes and locations don't match (e.g., slope < 0 but located in the right half of image)
-* Run polyfit on the remaining line segments to get slope and bias of lane lines
-* To avoid lines being jumpy when test on videos, combine the knowledge from previous frame with the result fitted above to calculate the final slope and bias, then extend the left and right lane boundaries accordingly
+* Run polyfit on valid line segments to calculate slope and bias for both lines
+* To avoid jumpy when test on videos, apply the slopes and bias from previous frame with the result calculated above, to generate the final slope / bias we will use
+* Extend lane boundaries accordingly
 
 ### 2. Identify potential shortcomings with your current pipeline
-
-* Lane detection doesn't work well with optional challenge since the noise caused by tree shadows and pavement color changes are not well handled
-* The parameters used in Canny edge detection and Hough Transform are manually tuned and hardcoded. It works with the  sample images and videos, while it will easily fail at different weather and light conditions (rain, snow or at night)
-* The pipeline uses region of interest (ROI) to reduce noises, while the tuned ROI parameters may not work when camera installation changes
+* The parameters used in Canny edge detection and Hough Transform are manually tuned and hardcoded. It works well with the sample images and videos, while it may fail at different weather and light conditions (rain, snow or at night)
+* The pipeline relies on region of interest (ROI) to reduce noises, while the tuned parameters may not work when camera installation changes
 
 ### 3. Suggest possible improvements to your pipeline
-* Design an algorithm to dynamically update parameters of ROI, edge detection and Hough Transform
-* Apply color selection to reduce the noises caused by different weather and light conditions
+* Design algorithms to dynamically update parameters of ROI, edge detection and Hough Transform
