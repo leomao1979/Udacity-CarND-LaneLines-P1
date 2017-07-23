@@ -23,7 +23,7 @@ The goals / steps of this project are the following:
 ### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
 #### Pipeline details
-##### 1) Read image and select Yellow and White colors
+##### 1) Read image then select Yellow and White colors
 ```
 img = mpimg.imread('test_images/solidWhiteCurve.jpg')
 
@@ -34,7 +34,7 @@ yellow_hsv_high = np.array([40, 255, 255], np.uint8)
 yellow_mask = cv2.inRange(hsv_img, yellow_hsv_low, yellow_hsv_high)
 ```
 
-Yellow selected image:
+Yellow selected:
 
 <img src="test_images_output/pipeline/yellow_selected.jpg" width="480" alt="Yellow Selected Image" />
 
@@ -45,7 +45,7 @@ white_rgb_high = np.array([255, 255, 255], np.uint8)
 white_mask = cv2.inRange(img, white_rgb_low, white_rgb_high)
 ```
 
-White selected image:
+White selected:
 
 <img src="test_images_output/pipeline/white_selected.jpg" width="480" alt="White Selected Image" />
 
@@ -86,7 +86,7 @@ roi_top_right_x_ratio    = 0.58  # Top right_X of Region of Interest: width * ro
 roi_top_y_ratio          = 0.62  # Top Y of Region of interest: height * roi_top_y_ratio
 ```
 
-The vertices of region of interest are calculated with image size and variables defined above.
+The vertices of ROI are calculated with image size and variables defined above.
 ```
 imshape = image.shape
 top_y = int(imshape[0] * roi_top_y_ratio)
