@@ -23,7 +23,7 @@ The goals / steps of this project are the following:
 ### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
 #### Pipeline details
-1) Read image and select Yellow and White colors
+##### 1) Read image and select Yellow and White colors
 ```
 img = mpimg.imread('test_images/solidWhiteCurve.jpg')
 
@@ -33,7 +33,9 @@ yellow_hsv_low = np.array([0, 80, 200], np.uint8)
 yellow_hsv_high = np.array([40, 255, 255], np.uint8)
 yellow_mask = cv2.inRange(hsv_img, yellow_hsv_low, yellow_hsv_high)
 ```
+
 Yellow selected image:
+
 <img src="test_images_output/pipeline/yellow_selected.jpg" width="480" alt="Yellow Selected Image" />
 
 ```
@@ -51,23 +53,25 @@ Merged (Yellow and White):
 
 <img src="test_images_output/pipeline/color_selected.jpg" width="480" alt="Color Selected Image" />
 
-2) Convert to grayscale and apply Gaussian blur to reduce noise
+##### 2) Convert to grayscale and apply Gaussian blur to reduce noise
 ```
 gray = cv2.cvtColor(color_selected, cv2.COLOR_RGB2GRAY)
 kernel_size = 5
 blur_gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
 ```
+
 <img src="test_images_output/pipeline/blur_gray.jpg" width="480" alt="Blurred Image" />
 
-3) Run Canny Edge Detection on blurred gray image
+##### 3) Run Canny Edge Detection on blurred gray image
 ```
 low_threshold = 50
 high_threshold = 150
 canny_edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
 ```
+
 <img src="test_images_output/pipeline/canny_edges.jpg" width="480" alt="Canny Edges Image" />
 
-4) Define Region of Interest (ROI) with four sided polygon then crop image
+##### 4) Define Region of Interest (ROI) with four sided polygon then crop image
 
 ROI related variables:
 ```
@@ -87,9 +91,10 @@ vertices = np.array([[(bottom_left_x, imshape[0]), (top_left_x, top_y),
                       (top_right_x, top_y), (imshape[1] - 50, imshape[0])]], dtype=np.int32)
 masked_edges = region_of_interest(canny_edges, vertices)
 ```
+
 <img src="test_images_output/pipeline/masked_edges.jpg" width="480" alt="Masked Edges Image" />
 
-5) Run HoughLinesP to find line segments on masked, edge detected image using the probabilistic Hough transform
+##### 5) Run HoughLinesP to find line segments on masked, edge detected image using the probabilistic Hough transform
 ```
 rho = 2            # distance resolution in pixels of the Hough grid
 theta = np.pi/180  # angular resolution in radians of the Hough grid
@@ -98,13 +103,15 @@ min_line_len = 5  # minimum number of pixels making up a line
 max_line_gap = 10  # maximum gap in pixels between connectable line segments
 lines_image = hough_lines(masked_edges, rho, theta, threshold, min_line_len, max_line_gap)
 ```
+
 <img src="test_images_output/pipeline/lines_image.jpg" width="480" alt="Lines Image" />
 
-6) Draw lines on initial image
+##### 6) Draw lines on initial image
 ```
 α = 0.8, β = 1.0, λ = 0.0
 result = cv2.addWeighted(image, α, lines_image, β, λ)
 ```
+
 <img src="test_images_output/solidYellowCurve.jpg" width="480" alt="Solid Yellow Curve Image" />
 
 #### Changes on draw_lines()
